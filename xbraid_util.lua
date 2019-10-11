@@ -89,7 +89,7 @@ defaultBraidSettings = {
     storeValues = 0, -- store points for level >= x
 
     skipDowncycleWork = true,
-    spatialCoarsenAndRefine = false, -- todo methods!
+    spatialCoarsenAndRefine = false,
 
     minCoarsening = "",
     -- temporalNorm = 2, -- possible values 1 (one norm), 2 (two norm), 3 (infinity norm)
@@ -97,7 +97,7 @@ defaultBraidSettings = {
     verbose = false, -- still printing braid output
 
     convCheck = { -- convCheck for braid
-        -- type = "standard", -- todo ask
+        -- type = "standard",
         iterations = 100,
         absolute = 1e-9,
         -- reduction = 1e-12, -- relTol
@@ -496,14 +496,7 @@ function xbraid_util.CreateBraidSolver(desc, XComm, domainDisc)
             print("set FMG to " .. desc.fmg)
             braid:setCycleNFMG(desc.fmg)
         end
-        -- todo mincoarsening
-        -- todo spatial coarse and refine
-        -- todo cycle type
-        -- todo time refinement
-        -- todo max refinements
-        -- todo access level
-        -- todo print level
-        -- todo print filename
+        
         print("XBraid Object created")
         return braid
     else
