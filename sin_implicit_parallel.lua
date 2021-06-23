@@ -1,4 +1,4 @@
-walltime = Talasma() -- get Time of whole execution
+local walltime = Talasma() -- get Time of whole execution
 walltime:start()
 
 ug_load_script("ug_util.lua")
@@ -16,9 +16,9 @@ p_solver = util.GetParamNumber("-solver", 0, "see list below; 0 for GMG(V,1,1,ja
 p_strongfirst = util.GetParamNumber("-first", 0, " Use a high accuracy in the first iteration")
 alpha = util.GetParamNumber("-alpha", 0.1, " diffusion constant (default: 0.1)")
 
-numWorldRanks = NumProcs()
-xCommunicator = SpaceTimeCommunicator()
-numTemporalProcs = numWorldRanks;
+local numWorldRanks = NumProcs()
+local xCommunicator = SpaceTimeCommunicator()
+local numTemporalProcs = numWorldRanks;
 if numWorldRanks % p_numSpatialProcs == 0 then
     -- make sure numSpatialProcs*numTemporal == numWorldRanks
     xCommunicator:split(p_numSpatialProcs)
@@ -31,7 +31,7 @@ end
 
 -- Parse parameters and print help
 dim = util.GetParamNumber("-dim", 2, "simulated time frame in seconds")
-p_gridName = util.GetParam("-grid", "grids/cube_"..dim.."d.ugx","filename of underlying grid")
+p_gridName = util.GetParam("-grid", "grids/cube_"..dim.."d.ugx","filename of undesrlying grid")
 p_numRefs = util.GetParamNumber("-numRefs", 5, "number of refinements") -- grid with 129x129 grid points
 p_N = util.GetParamNumber("-N", 16384, "simulated time frame in seconds")
 p_startTime = util.GetParamNumber("-startTime", 0, "simulated time frame in seconds")
@@ -40,68 +40,34 @@ p_dt = util.GetParamNumber("-dt", p_endTime / p_N, "time step size")
 p_modal = util.GetParamNumber("-Mod", 512, " divisor to save every Mod'th result")
 solFileName = "p" .. numWorldRanks .. "s" .. p_numSpatialProcs .. "_sin2"..dim
 numSteps = p_N
+
 InitUG(dim, AlgebraType("CPU", 1));
 
--- Lua problem definition ----------------------------------------------------------------------------------------------
-------- 3d -------------------------------------------------------------------------------------------------------------
-function sinSource3d(x, y, z, t)
-    return -math.sin(math.pi * x) * math.sin(math.pi * y) * math.sin(math.pi * z) * (math.sin(t) - 3 * alpha * math.pi * math.pi * math.cos(t))
-end
 
-function sinBoundary3d(x, y, z, t)
-    return true, 0
-end
-
-function sinAnalyticSolution3d(x, y, z, t)
-    return math.sin(math.pi * x) * math.sin(math.pi * y) * math.sin(z) * math.cos(t)
-end
-------- 2d -------------------------------------------------------------------------------------------------------------
-function sinSource2d(x, y, t)
-    return -math.sin(math.pi * x) * math.sin(math.pi * y) * (math.sin(t) - 2 * alpha * math.pi * math.pi * math.cos(t))
-end
-
-function sinBoundary2d(x, y, t)
-    return true, 0
-end
-
-function sinAnalyticSolution2d(x, y, t)
-    return math.sin(math.pi * x) * math.sin(math.pi * y) * math.cos(t)
-end
-------- 1d -------------------------------------------------------------------------------------------------------------
-function sinSource1d(x, t)
-    return -math.sin(math.pi * x) * (math.sin(t) - 1 * alpha * math.pi * math.pi * math.cos(t))
-end
-
-function sinBoundary1d(x, t)
-    return true, 0
-end
-
-function sinAnalyticSolution1d(x, t)
-    return math.sin(math.pi * x) * math.cos(t)
-end
 -- C++ problem definition ----------------------------------------------------------------------------------------------
-source = SinSourceOneCube()
+local source = SinSourceUnitCube()
 source:setAlpha(alpha)
 boundary = 0
-analyticsolution = SinAnalyticSolutionOneCube()
+local analyticsolution = SinAnalyticSolutionUnitCube()
 analyticsolution:setAlpha(alpha)
 
 -- guess function ------------------------------------------------------------------------------------------------------
-function originator(x, y, z, t, si)
+function myInitialGuess(x, y, z, t, si)
     -- guess function to initiate other time steps of vector v ( v[0] = u0)
-    return 0
+    return 0.0
 end
+
 -- Prepare Domain ------------------------------------------------------------------------------------------------------
 
-requiredSubsets = { "Inner", "Boundary" }
-dom = util.CreateDomain(p_gridName, 0, requiredSubsets)
+local requiredSubsets = { "Inner", "Boundary" }
+local dom = util.CreateDomain(p_gridName, 0, requiredSubsets)
 -- Refine the domain (redistribution is handled internally for parallel runs)
 print("refining...")
 util.refinement.CreateRegularHierarchy(dom, p_numRefs, true)
 
 
 -- set up approximation space
-approxSpace = ApproximationSpace(dom)
+local approxSpace = ApproximationSpace(dom)
 approxSpace:add_fct("t", "Lagrange", 1)
 approxSpace:init_levels()
 approxSpace:init_top_surface()
@@ -111,20 +77,20 @@ approxSpace:print_statistic()
 
 
 -- set up discretization
-convection = ConvectionDiffusion("t", "Inner", "fe")
+local convection = ConvectionDiffusion("t", "Inner", "fe")
 convection:set_diffusion(alpha)
 convection:set_source(source)
 
-dboundary = DirichletBoundary()
+local dboundary = DirichletBoundary()
 dboundary:add(boundary, "t", "Boundary")
 
-domainDisc = DomainDiscretization(approxSpace)
+local domainDisc = DomainDiscretization(approxSpace)
 domainDisc:add(convection)
 domainDisc:add(dboundary)
 
 -- -------------------------------------- Solver -----------------------------------
 
-VSolver = {
+local VSolver = {
     type = "bicgstab",
     name = "Linear Weak V Solver",
     precond = {
@@ -145,7 +111,7 @@ VSolver = {
     }
 }
 
-exactSolver = {
+local exactSolver = {
     type = "bicgstab",
     name = "Linear Exact Solver",
     precond = {
@@ -167,7 +133,7 @@ exactSolver = {
     }
 }
 
-newtonSolver = {
+local newtonSolver = {
     type = "newton",
     name = "Newton Solver",
     convCheck = {
@@ -250,7 +216,7 @@ elseif p_coarseningStrategy == 77777 then -- 193.340141964
     coarsening = { { 0, 16}, { 1, 8}, { 2, 8}, { 3, 16 }, { 4, 8}, { 5, 4}, { 6, 4}, { 7, 2}, { 8,2}, { 9, 2}, { 10, 2}, { 11, 2} }
 end
 -- -------------------------------------- Braid object definition ---------------------------------
-defaultBraidSettingsA = {
+local defaultBraidSettingsA = {
     type = "uniform",
     time = { t0 = p_startTime, tn = p_endTime, n = numSteps },
     maxLevels = p_max_level,
@@ -294,13 +260,13 @@ defaultBraidSettingsA = {
     verbose = true
 }
 
-u = GridFunction(approxSpace)
+local u = GridFunction(approxSpace)
 u:set(0.0)
 Interpolate(analyticsolution, u, "t", "Inner", 0)
 domainDisc:adjust_solution(u)
 
 
-braid = xbraid_util.CreateBraidSolver(defaultBraidSettingsA, xCommunicator, domainDisc)
+local braid = xbraid_util.CreateBraidSolver(defaultBraidSettingsA, xCommunicator, domainDisc)
 
 braid:setStoreValues(0)
 -- -------------------------------------- predefined cycle and relaxation types ---------------------------------
@@ -335,9 +301,9 @@ end
 
 
 -- -------------------------------------- Access definition ---------------------------------
-out = MultiScriptor()
+local out = MultiScriptor()
 
-eval_out = EvalScriptor()
+local eval_out = EvalScriptor()
 eval_out:setRelative(true)
 eval_out:setFile("difference"..xCommunicator:getTemporalRank())
 eval_out:setGeneratorComponent("t")
@@ -357,11 +323,11 @@ braid:setPrintLevel(3)
 braid:setAccessLevel(3)
 
 -- -------------------------------------- Braid object definition ---------------------------------
-time = Talasma()
+local time = Talasma()
 time:start()
 
 
-braid:run(u, "originator", "t", out)
+braid:run(u, "myInitialGuess", "t", out)
 
 time:stop()
 print(time:get() .. " seconds for parallel time stepping")
