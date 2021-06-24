@@ -7,7 +7,7 @@ ug_load_script("util/refinement_util.lua")
 -- Parse parameters and print help
 dim = util.GetParamNumber("-dim", 2, "simulated time frame in seconds")
 p_gridName = util.GetParam("-grid", "grids/cube_" .. dim .. "d.ugx", "filename of underlying grid")
-p_numRefs = util.GetParamNumber("-numRefs", 3, "number of refinements")
+p_numRefs = util.GetParamNumber("-numRefs", 5, "number of refinements")
 endTime = util.GetParamNumber("-endTime", 6, "simulated time frame in seconds")
 p_N = util.GetParamNumber("-N", 16384, "simulated time frame in seconds")
 alpha = util.GetParamNumber("-alpha", 0.1, "simulated time frame in seconds")
@@ -57,10 +57,10 @@ function sinAnalyticSolution1d(x, t)
     return math.sin(math.pi * x) * math.cos(t)
 end
 -- C++ problem definition ----------------------------------------------------------------------------------------------
-source = SinSourceOneCube()
+source = SinSourceUnitCube()
 source:setAlpha(alpha)
 boundary = 0
-analyticsolution = SinAnalyticSolutionOneCube()
+analyticsolution = SinAnalyticSolutionUnitCube()
 analyticsolution:setAlpha(alpha)
 -- guess function ------------------------------------------------------------------------------------------------------
 function originator(x, y, z, t, si)
